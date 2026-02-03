@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -29,7 +31,6 @@ export default function ForgotPasswordPage() {
       if (error) throw error;
 
       setMsg("Check your email for the reset link.");
-      // Optional: after a second, go back to login
       setTimeout(() => router.push("/login"), 1200);
     } catch (e: any) {
       setErr(e?.message || "Failed to send reset email.");
