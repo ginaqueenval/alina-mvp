@@ -1,55 +1,90 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Navbar from '@/components/Navbar';
-import { supabase } from '@/lib/supabaseClient';
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState('');
+  const router = useRouter();
+  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
+  const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setMessage('');
     setLoading(true);
+    setMsg(null);
+    setErr(null);
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${location.origin}/reset-password`,
-    });
+    try {
+      const origin =
+        typeof window !== "undefined" ? window.location.origin : "";
 
-    setLoading(false);
-    if (error) {
-      setMessage(error.message);
-    } else {
-      setMessage('Password reset link sent! Check your email.');
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${origin}/reset-password`,
+      });
+
+      if (error) throw error;
+
+      setMsg("Check your email for the reset link.");
+      // Optional: after a second, go back to login
+      setTimeout(() => router.push("/login"), 1200);
+    } catch (e: any) {
+      setErr(e?.message || "Failed to send reset email.");
+    } finally {
+      setLoading(false);
     }
-  };
+  }
 
   return (
-    <>
-      <Navbar />
-      <main className="mx-auto max-w-md px-6 py-12">
-        <h1 className="text-2xl font-bold">Reset your password</h1>
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+    <main className="min-h-screen bg-zinc-950 text-zinc-100">
+      <div className="mx-auto max-w-md px-6 py-16">
+        <h1 className="text-3xl font-semibold">Forgot password</h1>
+        <p className="mt-2 text-sm text-zinc-400">
+          Enter your email and we’ll send you a password reset link.
+        </p>
+
+        <form
+          onSubmit={onSubmit}
+          className="mt-8 rounded-2xl border border-white/10 bg-zinc-900/40 p-6"
+        >
+          <label className="text-sm text-zinc-300">Email</label>
           <input
-            type="email"
-            placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            type="email"
             required
-            className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-zinc-400 focus:outline-none"
+            className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-950 px-4 py-3 text-zinc-100 outline-none focus:border-white/20"
+            placeholder="you@example.com"
           />
+
           <button
-            type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-white px-4 py-3 text-sm font-semibold text-black disabled:opacity-50"
+            className="mt-5 w-full rounded-xl bg-amber-200 px-4 py-3 text-sm font-semibold text-zinc-950 disabled:opacity-70"
           >
-            {loading ? 'Sending…' : 'Send reset link'}
+            {loading ? "Sending..." : "Send reset link"}
           </button>
+
+          {err && (
+            <p className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+              {err}
+            </p>
+          )}
+          {msg && (
+            <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+              {msg}
+            </p>
+          )}
+
+          <div className="mt-5 text-sm text-zinc-400">
+            <Link className="underline hover:text-zinc-200" href="/login">
+              Back to Log in
+            </Link>
+          </div>
         </form>
-        {message && <p className="mt-4 text-sm text-zinc-300">{message}</p>}
-      </main>
-    </>
+      </div>
+    </main>
   );
 }
