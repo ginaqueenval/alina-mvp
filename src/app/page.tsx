@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import Navbar from "@/components/Navbar";
 
 export default function HomePage() {
@@ -41,6 +42,7 @@ export default function HomePage() {
             <div className="text-sm text-zinc-300">Preview</div>
 
             <div className="mt-4 space-y-3">
+              {/* Luna card with real image */}
               <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                 <div className="flex items-center gap-3">
                   <div className="grid h-10 w-10 place-items-center rounded-full bg-white/10">
@@ -48,15 +50,30 @@ export default function HomePage() {
                   </div>
                   <div className="flex-1">
                     <div className="text-sm font-semibold">Luna</div>
-                    <div className="text-xs text-zinc-400">@luna • Locked post</div>
+                    <div className="text-xs text-zinc-400">@luna • Public post</div>
                   </div>
                   <div className="rounded-lg bg-white/10 px-2 py-1 text-xs text-zinc-200">
                     Subscribe
                   </div>
                 </div>
-                <div className="mt-3 h-24 rounded-xl bg-white/10 blur-[1.5px]" />
+
+                <div className="mt-3 overflow-hidden rounded-xl border border-white/10 bg-black/30">
+                  <Image
+                    src="/uploads/luna-post.jpg"
+                    alt="Luna post"
+                    width={1200}
+                    height={800}
+                    className="h-auto w-full object-cover"
+                    priority
+                  />
+                </div>
+
+                <p className="mt-3 text-sm text-zinc-200">
+                  I designed this website for a girl im in love with
+                </p>
               </div>
 
+              {/* Keep Aria preview as-is */}
               <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                 <div className="flex items-center gap-3">
                   <div className="grid h-10 w-10 place-items-center rounded-full bg-white/10">
