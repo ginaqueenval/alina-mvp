@@ -59,7 +59,7 @@ export default function HomePage() {
 
                 <div className="mt-3 overflow-hidden rounded-xl border border-white/10 bg-black/30">
                   <Image
-                    src="/uploads/luna-post.jpg"
+                    src="/uploads/luna-post.jpeg"
                     alt="Luna post"
                     width={1200}
                     height={800}
