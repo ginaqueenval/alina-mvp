@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseclient";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function FeedComposer() {
   const router = useRouter();
