@@ -1,10 +1,12 @@
 import Link from "next/link";
 import Image from "next/image";
 import Navbar from "@/components/Navbar";
+import LoggedInRedirect from "@/components/LoggedInRedirect";
 
 export default function HomePage() {
   return (
     <>
+      <LoggedInRedirect />
       <Navbar />
       <main className="mx-auto max-w-6xl px-6 py-14">
         <section className="grid gap-10 md:grid-cols-2 md:items-center">

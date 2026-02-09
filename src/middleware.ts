@@ -7,7 +7,7 @@ const protectedPrefixes = [
   '/subscriptions',
   '/wallet',
   '/transactions',
-  '/settings',
+  '/setting', // ✅ FIX: your app uses /setting not /settings
   '/creator',
 ];
 
@@ -17,7 +17,9 @@ export function middleware(req: NextRequest) {
   if (!isProtected) return NextResponse.next();
 
   // Supabase v2 از کوکی sb-access-token استفاده می‌کند
+  // (اما در لاگین فعلی شما ممکنه اصلاً کوکی ست نشه)
   const hasSessionCookie = req.cookies.has('sb-access-token');
+
   if (!hasSessionCookie) {
     const url = req.nextUrl.clone();
     url.pathname = '/login';

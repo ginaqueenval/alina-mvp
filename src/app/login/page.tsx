@@ -4,19 +4,13 @@ export const dynamic = "force-dynamic";
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { createBrowserClient } from "@supabase/ssr";
-
-function getSupabaseBrowser() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const key =
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
-  return createBrowserClient(url, key);
-}
+import { useRouter, useSearchParams } from "next/navigation";
+import { supabase } from "@/lib/supabaseclient";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -28,14 +22,14 @@ export default function LoginPage() {
     setErr(null);
 
     try {
-      const supabase = getSupabaseBrowser();
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       if (error) throw error;
 
-      router.push("/feed");
+      const next = searchParams.get("next");
+      router.push(next || "/feed");
       router.refresh();
     } catch (e: any) {
       setErr(e?.message || "Login failed");
