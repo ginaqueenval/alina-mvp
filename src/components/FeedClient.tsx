@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -12,12 +12,8 @@ type Post = {
 };
 
 function normalizeImageUrl(url: string) {
-  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("/")) return url;
-  return `/${url}`;
-}
-
-function shortId(id: string) {
-  return `${id.slice(0, 8)}…`;
+  if (url.startsWith("http://")  url.startsWith("https://")  url.startsWith("/")) return url;
+  return /${url};
 }
 
 export default function FeedClient({
@@ -32,7 +28,31 @@ export default function FeedClient({
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(initialError);
 
-  const remaining = useMemo(() => 280 - caption.trim().length, [caption]);
+  const captionLen = useMemo(() => caption.trim().length, [caption]);
+
+  // ✅ Realtime: هر INSERT جدید به جدول posts، خودکار میاد بالای فید
+  useEffect(() => {
+    const channel = supabase
+      .channel("realtime:posts")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "posts" },
+        (payload) => {
+          const newPost = payload.new as Post;
+
+          setPosts((prev) => {
+            // جلوگیری از تکراری شدن (مثلاً اگه خودت پست گذاشتی و هم realtime هم insert دستی اضافه کنه)
+            if (prev.some((p) => String(p.id) === String(newPost.id))) return prev;
+            return [newPost, ...prev];
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   async function onPost() {
     const text = caption.trim();
@@ -62,6 +82,7 @@ export default function FeedClient({
 
       if (error) throw error;
 
+      // ✅ Optimistic اضافه کردن (Realtime هم میاد، ولی با چک بالا تکراری نمیشه)
       setPosts((p) => [data as Post, ...p]);
       setCaption("");
     } catch (e: any) {
@@ -72,76 +93,30 @@ export default function FeedClient({
   }
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-6">
-      {/* Twitter-like 3-column layout */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
-        {/* Left sidebar */}
-        <aside className="hidden md:col-span-3 md:block">
-          <div className="sticky top-6 space-y-3">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <div className="text-sm font-semibold text-white">Menu</div>
-
-              <nav className="mt-3 space-y-2 text-sm">
-                <a className="block rounded-xl px-3 py-2 text-zinc-200 hover:bg-white/5" href="/feed">
-                  Home
-                </a>
-                <a className="block rounded-xl px-3 py-2 text-zinc-200 hover:bg-white/5" href="/explore">
-                  Explore
-                </a>
-                <a className="block rounded-xl px-3 py-2 text-zinc-200 hover:bg-white/5" href="/setting/profile">
-                  Profile
-                </a>
-              </nav>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <div className="text-sm font-semibold text-white">Tips</div>
-              <p className="mt-2 text-xs leading-5 text-zinc-400">
-                Keep posts short. Add media later (we’ll enable uploads next).
-              </p>
-            </div>
-          </div>
-        </aside>
-
-        {/* Center column */}
-        <section className="md:col-span-6">
-          {/* Top header */}
-          <div className="mb-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-base font-semibold text-white">Home</h1>
-                <p className="mt-0.5 text-xs text-zinc-400">Latest posts</p>
-              </div>
-
-              <button
-                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-zinc-200 hover:bg-white/5"
-              >
-                Top
-              </button>
-            </div>
-          </div>
-
+    <main className="mx-auto max-w-6xl px-6 py-6">
+      <div className="grid grid-cols-12 gap-6">
+        {/* Center */}
+        <section className="col-span-12 md:col-span-9">
           {/* Composer */}
-          <section className="rounded-2xl border border-white/10 bg-white/5 p-4">
+          <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
             <div className="flex items-start gap-3">
               <div className="h-10 w-10 shrink-0 rounded-full bg-white/10" />
               <div className="w-full">
                 <textarea
                   value={caption}
                   onChange={(e) => setCaption(e.target.value)}
-                  placeholder="What’s happening?"
-                  className="min-h-[92px] w-full resize-none rounded-xl border border-white/10 bg-zinc-950 px-4 py-3 text-sm text-zinc-100 outline-none focus:border-white/20"
+                  placeholder="What's happening?"
+                  className="min-h-[88px] w-full resize-none rounded-xl border border-white/10 bg-zinc-950 px-4 py-3 text-sm text-zinc-100 outline-none focus:border-white/20"
                 />
 
                 <div className="mt-3 flex items-center justify-between">
-                  <p className={`text-xs ${remaining < 0 ? "text-red-300" : "text-zinc-500"}`}>
-                    {Math.max(remaining, 0)}/280
+                  <p className="text-xs text-zinc-500">
+                    {captionLen}/280
                   </p>
 
                   <button
                     onClick={onPost}
-                    disabled={loading || caption.trim().length === 0 || caption.trim().length > 280}
+                    disabled={loading  captionLen === 0  captionLen > 280}
                     className="rounded-xl bg-amber-200 px-4 py-2 text-sm font-semibold text-zinc-950 disabled:opacity-60"
                   >
                     {loading ? "Posting..." : "Post"}
@@ -154,35 +129,36 @@ export default function FeedClient({
                   </p>
                 )}
               </div>
-            </div>
+              </div>
           </section>
 
           {/* Feed */}
-          <section className="mt-4 divide-y divide-white/10 overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+          <section className="mt-6 space-y-4">
             {posts.length === 0 ? (
-              <div className="p-6 text-sm text-zinc-300">No posts yet.</div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-sm text-zinc-300">
+                No posts yet.
+              </div>
             ) : (
               posts.map((p) => (
-                <article key={p.id} className="p-4 hover:bg-white/[0.04]">
+                <article key={p.id} className="rounded-2xl border border-white/10 bg-white/5 p-5">
                   <div className="flex gap-3">
                     <div className="h-10 w-10 shrink-0 rounded-full bg-white/10" />
 
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 text-sm">
-                        <span className="font-semibold text-white">User</span>
-                        <span className="text-zinc-400">({shortId(p.user_id)})</span>
-                        <span className="text-zinc-600">·</span>
-                        <span className="text-xs text-zinc-500">now</span>
+                    <div className="w-full">
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm text-zinc-300">
+                          <span className="font-semibold text-white">User</span>{" "}
+                          <span className="text-zinc-400">({p.user_id.slice(0, 8)}…)</span>
+                        </div>
+                        <div className="text-xs text-zinc-500">now</div>
                       </div>
 
                       {p.caption ? (
-                        <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-zinc-200">
-                          {p.caption}
-                        </p>
+                        <p className="mt-2 whitespace-pre-wrap text-sm text-zinc-200">{p.caption}</p>
                       ) : null}
 
                       {p.image_url ? (
-                        <div className="mt-3 overflow-hidden rounded-2xl border border-white/10 bg-black/30">
+                        <div className="mt-3 overflow-hidden rounded-xl border border-white/10 bg-black/30">
                           <Image
                             src={normalizeImageUrl(p.image_url)}
                             alt="Post image"
@@ -240,7 +216,6 @@ export default function FeedClient({
                 </div>
               </div>
             </div>
-
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
               <div className="text-sm font-semibold text-white">Who to follow</div>
               <p className="mt-2 text-xs text-zinc-400">Later we’ll fill this from users table.</p>
